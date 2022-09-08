@@ -24,7 +24,7 @@ var gcpTemplatesFS embed.FS
 var resources = []*codegen.Resource{}
 
 func main() {
-	resources = append(resources, codegen.Resources()...)
+	resources = append(resources, codegen.Resources...)
 
 	for _, r := range resources {
 		generateResource(*r, false)
@@ -107,15 +107,29 @@ func generateResource(r codegen.Resource, mock bool) {
 	//if r.DefaultColumns == nil {
 	//	r.DefaultColumns = []sdkgen.ColumnDefinition{codegen.ProjectIdColumn}
 	//}
-	if r.StructName == "" {
-		r.StructName = reflect.TypeOf(r.Struct).Elem().Name()
-	}
-	if r.MockListStruct == "" {
-		r.MockListStruct = strcase.ToCamel(r.StructName)
+
+	if r.MockStruct == nil {
+		r.MockStruct = r.Struct
 	}
 
+	r.StructName, r.IsStructPointer = getElemNameAndPointer(r.Struct)
+	r.ParentStructName, r.IsParentPointer = getElemNameAndPointer(r.ParentStruct)
+	r.MockStructName, _ = getElemNameAndPointer(r.MockStruct)
+
+	r.SubServiceName = r.SubService
+	if r.SubServiceName == "" {
+		r.SubServiceName = r.Service
+	}
+	if r.Args == "" {
+		r.Args = ",p.ID"
+	}
+
+	tableName := fmt.Sprintf("digitalocean_%s_%s", r.Service, r.SubService)
+	if r.SubService == "" {
+		tableName = fmt.Sprintf("digitalocean_%s", r.Service)
+	}
 	r.Table, err = sdkgen.NewTableFromStruct(
-		fmt.Sprintf("digitalocean_%s", r.Service),
+		tableName,
 		r.Struct,
 		sdkgen.WithSkipFields(r.SkipFields),
 		sdkgen.WithOverrideColumns(r.OverrideColumns),
@@ -128,12 +142,17 @@ func generateResource(r codegen.Resource, mock bool) {
 	} else {
 		r.Table.Multiplex = *r.Multiplex
 	}
-	r.Table.Resolver = "fetch" + strcase.ToCamel(r.Service)
+	r.Table.Resolver = "fetch" + strcase.ToCamel(r.SubServiceName)
 	// if r.GetFunction != "" {
 	// r.Table.PreResourceResolver = "get" + strcase.ToCamel(r.StructName)
 	// }
 	if r.Relations != nil {
-		r.Table.Relations = r.Relations
+		relations := make([]string, 0, len(r.Relations))
+		for _, r := range r.Relations {
+			f := fmt.Sprintf("%s()", r)
+			relations = append(relations, f)
+		}
+		r.Table.Relations = []string{strings.Join(relations, ", ")}
 	}
 	mainTemplate := r.Template + ".go.tpl"
 	if mock {
@@ -163,9 +182,9 @@ func generateResource(r codegen.Resource, mock bool) {
 		log.Fatal(err)
 	}
 	if mock {
-		filePath = path.Join(filePath, r.Service+"_mock_test.go")
+		filePath = path.Join(filePath, r.SubServiceName+"_mock_test.go")
 	} else {
-		filePath = path.Join(filePath, r.Service+".go")
+		filePath = path.Join(filePath, r.SubServiceName+".go")
 	}
 
 	content := buff.Bytes()
@@ -182,4 +201,16 @@ func generateResource(r codegen.Resource, mock bool) {
 	if err := os.WriteFile(filePath, content, 0644); err != nil {
 		log.Fatal(fmt.Errorf("failed to write file %s: %w", filePath, err))
 	}
+}
+
+func getElemNameAndPointer(i interface{}) (string, bool) {
+	if i == nil {
+		return "", false
+	}
+	isPointer := reflect.ValueOf(i).Type().Kind() == reflect.Pointer
+	name := reflect.TypeOf(i).Name()
+	if isPointer {
+		name = reflect.TypeOf(i).Elem().Name()
+	}
+	return name, isPointer
 }

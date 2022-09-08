@@ -13,11 +13,28 @@ type Resource struct {
 	Table *codegen.TableDefinition
 	// Struct that will be used to generate the cloudquery table
 	Struct interface{}
+	// MockStruct that will be used to generate the mock
+	IsStructPointer bool
+	MockStruct      interface{}
+	// ParentStruct that will be used to generate the mock
+	ParentStruct interface{}
+	// ParentStructName that will be used to generate the mock
+	IsParentPointer  bool
+	Args             string
+	ParentStructName string
+	// MockWrapper
+	MockWrapper bool
+	// MockStructName is the name of the Struct because it can't be inferred by reflection
+	MockStructName string
 	// StructName is the name of the Struct because it can't be inferred by reflection
 	StructName string
 	// Service is the name of the gcp service the struct/api is residing
 	Service string
-	// SubService is the name of the gcp subservice the struct/api is residing (gcp is split into service.subservice.list)
+	// SubService is the name of the subservice
+	SubService string
+	// SubService is the name of the subservice
+	SubServiceName string
+	// NewFunction function
 	NewFunction interface{}
 	// NewFunctionName name of the above function via Reflection
 	NewFunctionName string
@@ -57,22 +74,18 @@ type Resource struct {
 	Multiplex *string
 	// ChildTable
 	ChildTable bool
-	// FakerFieldsToIgnore is a list of fields to ignore when generating faker data
-	FakerFieldsToIgnore []string
 	// SkipMock is used to skip the mock generation for this resource
 	SkipMock bool
 	// Pass to MockTemplate
 	MockTemplate string
-	// MockPostFaker is a code snippet that runs post faker
-	MockPostFaker string
-	// MockListStruct is the name of the struct that will be used in the mock template
-	MockListStruct string
+	// MockFieldName is a name of a struct that is used for mocking
+	ResponsePath string
 	// ProtobufImport path to protobuf struct for this resource/service
 	ProtobufImport string
-	// Dont generate fetch
-	SkipFetch bool
 	// SkipFields fields in go struct to skip when generating the table from the go struct
 	SkipFields []string
 	// Columns override, override generated columns
 	OverrideColumns []codegen.ColumnDefinition
+	FunctionName    string
+	SkipFetch       bool
 }

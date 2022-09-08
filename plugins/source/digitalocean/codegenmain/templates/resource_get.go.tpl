@@ -13,18 +13,19 @@ import (
   {{end}}
 )
 
-func {{.Service | ToCamel}}() *schema.Table {
+func {{.SubServiceName | ToCamel}}() *schema.Table {
     return &schema.Table{{template "table.go.tpl" .Table}}
 }
 
-func fetch{{.Service  | ToCamel}}(ctx context.Context, meta schema.ClientMeta, _ *schema.Resource, res chan<- interface{}) error {
-	svc := meta.(*client.Client)
+func fetch{{.SubServiceName | ToCamel}}(ctx context.Context, meta schema.ClientMeta, {{if eq .ParentStructName ""}}_{{else}}parent{{end}} *schema.Resource, res chan<- interface{}) error {
+	{{if ne .ParentStructName ""}}p := parent.Item.(godo.{{.ParentStructName}}){{end}}
+    svc := meta.(*client.Client)
 	getFunc := func() error {
-        response, _, err := svc.DoClient.{{.Service  | ToCamel}}.Get(ctx)
+        response, _, err := svc.Services.{{.Service  | ToCamel}}.Get{{.SubService | ToCamel}}(ctx{{if ne .ParentStructName ""}}, p.ID{{end}})
         if err != nil {
             return errors.WithStack(err)
         }
-        res <- *response
+        res <- response
         return nil
     }
 

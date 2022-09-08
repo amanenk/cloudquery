@@ -21,6 +21,8 @@ import (
 
 var defaultSpacesRegions = []string{"nyc3", "sfo3", "ams3", "sgp1", "fra1"}
 
+const MaxItemsPerPage = 200
+
 type Client struct {
 	// This is a client that you need to create and initialize in Configure
 	// It will be passed for each resource fetcher.
@@ -30,6 +32,7 @@ type Client struct {
 	SpacesRegion     string
 	CredentialStatus DoCredentialStruct
 	S3               *s3.Client
+	Services         *Services
 }
 
 type DoCredentialStruct struct {
@@ -62,6 +65,7 @@ func (c *Client) WithSpacesRegion(region string) *Client {
 		DoClient:     c.DoClient,
 		SpacesRegion: region,
 		S3:           c.S3,
+		Services:     initServices(c.DoClient),
 	}
 }
 
@@ -94,6 +98,40 @@ func getSpacesTokenFromEnv() (string, string) {
 		return "", ""
 	}
 	return spacesAccessKey, spacesSecretKey
+}
+
+type Services struct {
+	Account        AccountService
+	Cdn            CdnService
+	BillingHistory BillingHistoryService
+	Monitoring     MonitoringService
+	Balance        BalanceService
+	Certificates   CertificatesService
+	Databases      DatabasesService
+	Domains        DomainsService
+	Droplets       DropletsService
+	Firewalls      FirewallsService
+	FloatingIps    FloatingIpsService
+	Images         ImagesService
+	Keys           KeysService
+	LoadBalancers  LoadBalancersService
+	Projects       ProjectsService
+	Registry       RegistryService
+	Sizes          SizesService
+	Snapshots      SnapshotsService
+	Storage        StorageService
+	Vpcs           VpcsService
+}
+
+type ServicesRegionMap map[string]*Services
+
+// ServicesManager will hold the entire map of region services
+type ServicesManager struct {
+	services ServicesRegionMap
+}
+
+func (s *ServicesManager) ServicesByRegion(region string) *Services {
+	return s.services[region]
 }
 
 func New(ctx context.Context, logger zerolog.Logger, s specs.Source) (schema.ClientMeta, error) {
@@ -141,6 +179,7 @@ func New(ctx context.Context, logger zerolog.Logger, s specs.Source) (schema.Cli
 		spacesRegions = doSpec.SpacesRegions
 	}
 
+	client := godo.NewFromToken(doSpec.Token)
 	c := Client{
 		logger:           logger,
 		DoClient:         godo.NewFromToken(doSpec.Token),
@@ -148,6 +187,7 @@ func New(ctx context.Context, logger zerolog.Logger, s specs.Source) (schema.Cli
 		SpacesRegion:     "nyc3",
 		S3:               s3.NewFromConfig(awsCfg),
 		CredentialStatus: credStatus,
+		Services:         initServices(client),
 	}
 	return &c, nil
 }
@@ -162,4 +202,29 @@ func (a DoLogger) Logf(classification logging.Classification, format string, v .
 
 func (c *Client) Logger() *zerolog.Logger {
 	return &c.logger
+}
+
+func initServices(doClient *godo.Client) *Services {
+	return &Services{
+		Account:        doClient.Account,
+		Cdn:            doClient.CDNs,
+		BillingHistory: doClient.BillingHistory,
+		Monitoring:     doClient.Monitoring,
+		Balance:        doClient.Balance,
+		Certificates:   doClient.Certificates,
+		Databases:      doClient.Databases,
+		Domains:        doClient.Domains,
+		Droplets:       doClient.Droplets,
+		Firewalls:      doClient.Firewalls,
+		FloatingIps:    doClient.FloatingIPs,
+		Images:         doClient.Images,
+		Keys:           doClient.Keys,
+		LoadBalancers:  doClient.LoadBalancers,
+		Projects:       doClient.Projects,
+		Registry:       doClient.Registry,
+		Sizes:          doClient.Sizes,
+		Snapshots:      doClient.Snapshots,
+		Storage:        doClient.Storage,
+		Vpcs:           doClient.VPCs,
+	}
 }

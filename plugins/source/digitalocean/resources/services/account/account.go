@@ -70,13 +70,14 @@ func Account() *schema.Table {
 }
 
 func fetchAccount(ctx context.Context, meta schema.ClientMeta, _ *schema.Resource, res chan<- interface{}) error {
+
 	svc := meta.(*client.Client)
 	getFunc := func() error {
-		response, _, err := svc.DoClient.Account.Get(ctx)
+		response, _, err := svc.Services.Account.Get(ctx)
 		if err != nil {
 			return errors.WithStack(err)
 		}
-		res <- *response
+		res <- response
 		return nil
 	}
 
