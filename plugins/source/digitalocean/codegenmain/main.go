@@ -27,6 +27,7 @@ func main() {
 	resources = append(resources, codegen.Resources...)
 
 	for _, r := range resources {
+		configureResource(r)
 		generateResource(*r, false)
 		if !r.SkipMock {
 			generateResource(*r, true)
@@ -64,14 +65,7 @@ func generatePlugin(rr []*codegen.Resource) {
 	}
 }
 
-func generateResource(r codegen.Resource, mock bool) {
-	var err error
-	_, filename, _, ok := runtime.Caller(0)
-	if !ok {
-		log.Fatal("Failed to get caller information")
-	}
-	dir := path.Dir(filename)
-
+func configureResource(r *codegen.Resource) {
 	if r.NewFunction != nil {
 		path := strings.Split(runtime.FuncForPC(reflect.ValueOf(r.NewFunction).Pointer()).Name(), ".")
 		r.NewFunctionName = path[len(path)-1]
@@ -123,6 +117,16 @@ func generateResource(r codegen.Resource, mock bool) {
 	if r.Args == "" {
 		r.Args = ",p.ID"
 	}
+
+}
+
+func generateResource(r codegen.Resource, mock bool) {
+	var err error
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		log.Fatal("Failed to get caller information")
+	}
+	dir := path.Dir(filename)
 
 	tableName := fmt.Sprintf("digitalocean_%s_%s", r.Service, r.SubService)
 	if r.SubService == "" {
