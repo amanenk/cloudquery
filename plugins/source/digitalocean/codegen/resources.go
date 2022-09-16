@@ -1,4 +1,4 @@
-package codegen
+package main
 
 import (
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
@@ -487,4 +487,10 @@ var Resources = []*Resource{
 		},
 		SkipFields: []string{"URN"},
 	},
+}
+
+func main() {
+	for _, r := range Resources {
+		r.Generate()
+	}
 }

@@ -1,4 +1,4 @@
-package codegen
+package main
 
 import (
 	"bytes"
@@ -82,8 +82,14 @@ func (r *Resource) Generate() error {
 	//if r.UnwrapEmbeddedStructs {
 	//	opts = append(opts, codegen.WithUnwrapAllEmbeddedStructs())
 	//}
+
+	if r.SubService == "" {
+		r.SubService = r.Service
+	}
+	tableName := fmt.Sprintf("aws_%s_%s", r.Service, r.SubService)
+
 	r.Table, err = codegen.NewTableFromStruct(
-		fmt.Sprintf("aws_%s_%s", r.Service, r.SubService),
+		tableName,
 		r.Struct,
 		opts...,
 	)
