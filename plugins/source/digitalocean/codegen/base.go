@@ -2,14 +2,20 @@ package codegen
 
 import (
 	"bytes"
+	"embed"
 	"fmt"
 	"github.com/cloudquery/plugin-sdk/codegen"
+	"github.com/iancoleman/strcase"
 	"go/format"
 	"os"
 	"path"
 	"runtime"
 	"strings"
+	"text/template"
 )
+
+//go:embed templates/*.go.tpl
+var templatesFS embed.FS
 
 type Resource struct {
 	// Table is the table definition that will be used to generate the cloudquery table
@@ -44,7 +50,7 @@ type Resource struct {
 	// imports to add for this resource
 	Imports []string
 	// Multiplex
-	Multiplex *string
+	Multiplex string
 	// ChildTable
 	ChildTable bool
 	// SkipMock is used to skip the mock generation for this resource
@@ -88,12 +94,7 @@ func (r *Resource) Generate() error {
 	if r.Multiplex != "" {
 		r.Table.Multiplex = r.Multiplex
 	}
-	if r.PreResourceResolver != "" {
-		r.Table.PreResourceResolver = r.PreResourceResolver
-	}
-	if r.PostResourceResolver != "" {
-		r.Table.PostResourceResolver = r.PostResourceResolver
-	}
+
 	if r.Relations != nil {
 		r.Table.Relations = r.Relations
 	}

@@ -19,7 +19,7 @@ import (
 )
 
 //go:embed templates/*.go.tpl
-var gcpTemplatesFS embed.FS
+var templatesFS embed.FS
 
 var resources = []*codegen.Resource{}
 
@@ -45,7 +45,7 @@ func generatePlugin(rr []*codegen.Resource) {
 	tpl, err := template.New("autogen_tables.go.tpl").Funcs(template.FuncMap{
 		"ToCamel": strcase.ToCamel,
 		"ToLower": strings.ToLower,
-	}).ParseFS(gcpTemplatesFS, "templates/autogen_tables.go.tpl")
+	}).ParseFS(templatesFS, "templates/autogen_tables.go.tpl")
 	if err != nil {
 		log.Fatal(fmt.Errorf("failed to parse autogen_tables.go.tpl: %w", err))
 	}
@@ -104,10 +104,10 @@ func generateResource(r codegen.Resource, mock bool) {
 	if err != nil {
 		log.Fatal(fmt.Errorf("failed to create table for %s: %w", r.StructName, err))
 	}
-	if r.Multiplex == nil {
+	if r.Multiplex == "" {
 		r.Table.Multiplex = "client.ProjectMultiplex"
 	} else {
-		r.Table.Multiplex = *r.Multiplex
+		r.Table.Multiplex = r.Multiplex
 	}
 	r.Table.Resolver = "fetch" + strcase.ToCamel(r.SubServiceName)
 
@@ -130,7 +130,7 @@ func generateResource(r codegen.Resource, mock bool) {
 	tpl, err := template.New(mainTemplate).Funcs(template.FuncMap{
 		"ToCamel": strcase.ToCamel,
 		"ToLower": strings.ToLower,
-	}).ParseFS(gcpTemplatesFS, "templates/"+mainTemplate)
+	}).ParseFS(templatesFS, "templates/"+mainTemplate)
 	if err != nil {
 		log.Fatal(fmt.Errorf("failed to parse gcp templates: %w", err))
 	}
