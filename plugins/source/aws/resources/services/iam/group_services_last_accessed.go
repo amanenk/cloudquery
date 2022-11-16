@@ -59,11 +59,6 @@ func GroupServicesLastAccessed() *schema.Table {
 				Type:     schema.TypeJSON,
 				Resolver: schema.PathResolver("TrackedActionsLastAccessed"),
 			},
-			{
-				Name:     "entities",
-				Type:     schema.TypeJSON,
-				Resolver: schema.PathResolver("Entities"),
-			},
 		},
 	}
 }

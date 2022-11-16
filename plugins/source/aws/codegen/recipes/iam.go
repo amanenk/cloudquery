@@ -454,6 +454,13 @@ func IAMResources() []*Resource {
 			SubService:  "user_services_last_accessed",
 			Struct:      &models.ServiceLastAccessedEntitiesWrapper{},
 			Description: "https://docs.aws.amazon.com/IAM/latest/APIReference/API_ServiceLastAccessed.html",
+			Relations:   []string{"UserServicesLastAccessedEntities()"},
+		},
+		{
+			SubService:  "user_services_last_accessed_entities",
+			Struct:      &iam.GetServiceLastAccessedDetailsWithEntitiesOutput{},
+			SkipFields:  []string{"Marker"},
+			Description: "https://docs.aws.amazon.com/IAM/latest/APIReference/API_ServiceLastAccessed.html",
 		},
 		{
 			SubService:  "virtual_mfa_devices",

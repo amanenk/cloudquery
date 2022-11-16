@@ -59,11 +59,10 @@ func UserServicesLastAccessed() *schema.Table {
 				Type:     schema.TypeJSON,
 				Resolver: schema.PathResolver("TrackedActionsLastAccessed"),
 			},
-			{
-				Name:     "entities",
-				Type:     schema.TypeJSON,
-				Resolver: schema.PathResolver("Entities"),
-			},
+		},
+
+		Relations: []*schema.Table{
+			UserServicesLastAccessedEntities(),
 		},
 	}
 }

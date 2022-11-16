@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/cloudquery/cloudquery/plugins/source/aws/resources/services/iam/models"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/cloudquery/cloudquery/plugins/source/aws/client/services"
-	"github.com/cloudquery/cloudquery/plugins/source/aws/resources/services/iam/models"
 )
 
 func fetchIamAccessDetails(ctx context.Context, res chan<- interface{}, svc services.IamClient, arn string) error {
@@ -39,10 +39,13 @@ func fetchIamAccessDetails(ctx context.Context, res chan<- interface{}, svc serv
 			return fmt.Errorf("failed to get last accessed details with error: %s - %s", *details.Error.Code, *details.Error.Message)
 		case types.JobStatusTypeCompleted:
 			for _, s := range details.ServicesLastAccessed {
-				if err := fetchDetailEntities(ctx, res, svc, s, *output.JobId, arn); err != nil {
-					return err
+				res <- models.ServiceLastAccessedEntitiesWrapper{
+					ResourceARN:         arn,
+					JobId:               output.JobId,
+					ServiceLastAccessed: &s,
 				}
 			}
+
 			if details.Marker == nil {
 				return nil
 			}
@@ -53,23 +56,19 @@ func fetchIamAccessDetails(ctx context.Context, res chan<- interface{}, svc serv
 	}
 }
 
-func fetchDetailEntities(ctx context.Context, res chan<- interface{}, svc services.IamClient, sla types.ServiceLastAccessed, jobId string, arn string) error {
+func fetchDetailEntities(ctx context.Context, res chan<- interface{}, svc services.IamClient, parent models.ServiceLastAccessedEntitiesWrapper) error {
 	config := iam.GetServiceLastAccessedDetailsWithEntitiesInput{
-		JobId:            &jobId,
-		ServiceNamespace: sla.ServiceNamespace,
+		JobId:            parent.JobId,
+		ServiceNamespace: parent.ServiceNamespace,
 		MaxItems:         aws.Int32(1000),
 	}
-	details := models.ServiceLastAccessedEntitiesWrapper{
-		ResourceARN:         arn,
-		JobId:               &jobId,
-		ServiceLastAccessed: &sla,
-	}
+
 	for {
 		output, err := svc.GetServiceLastAccessedDetailsWithEntities(ctx, &config)
 		if err != nil {
 			return err
 		}
-		details.Entities = append(details.Entities, output.EntityDetailsList...)
+		res <- output
 		if output.Marker == nil {
 			break
 		}
@@ -77,6 +76,5 @@ func fetchDetailEntities(ctx context.Context, res chan<- interface{}, svc servic
 			config.Marker = output.Marker
 		}
 	}
-	res <- details
 	return nil
 }
